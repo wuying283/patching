@@ -4,22 +4,31 @@
 #
 
 QT_AVAILABLE = False
+QT_BINDING = None
 
-# attempt to load PyQt5
+# attempt to load PySide6
 try:
-    import PyQt5.QtGui as QtGui
-    import PyQt5.QtCore as QtCore
-    import PyQt5.QtWidgets as QtWidgets
-    from PyQt5 import sip
+    import PySide6.QtGui as QtGui
+    import PySide6.QtCore as QtCore
+    import PySide6.QtWidgets as QtWidgets
+    import shiboken6
 
-    # importing PyQt5 went okay, let's see if we're in an IDA Qt context
+    QT_BINDING = 'PySide6'
+
+    def wrap_instance(ptr, base):
+        """
+        Wrap a C++ Qt pointer as a PySide6 object.
+        """
+        return shiboken6.wrapInstance(ptr, base)
+
+    # importing PySide6 went okay, let's see if we're in an IDA Qt context
     try:
         import ida_kernwin
         QT_AVAILABLE = ida_kernwin.is_idaq()
     except ImportError:
         pass
 
-# import failed, PyQt5 is not available
+# import failed, PySide6 is not available
 except ImportError:
     pass
 
