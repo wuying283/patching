@@ -121,7 +121,8 @@ class AssembleAction(ida_kernwin.action_handler_t):
     def activate(self, ctx):
 
         # do not create a new patching dialog if one is already active
-        if ida_kernwin.find_widget(PatchingController.WINDOW_TITLE):
+        title = "%s 增强版 v%s by %s" % (self.core.PLUGIN_NAME, self.core.PLUGIN_VERSION, self.core.PLUGIN_AUTHORS)
+        if ida_kernwin.find_widget(title):
             return 1
 
         wid = PatchingController(self.core, get_current_ea(ctx))

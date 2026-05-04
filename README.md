@@ -131,6 +131,29 @@ Time and motivation permitting, future work may include:
 
 I welcome external contributions, issues, and feature requests. Please make any pull requests to the `develop` branch of this repository if you would like them to be considered for a future release.
 
+# 修改记录
+
+## v0.3.0 updates
+
+- PySide5 升级到 PySide5
+
+- 支持输入注释，例如：
+
+  ```assembly
+  xor eax, eax; 返回值清零
+  xor eax, 0 // C风格注释
+  retn # bash风格注释也支持
+  ```
+
+- 双击反汇编预览窗口代码，全部选中，方便快速编辑
+
+- 编辑完毕一行，回车自动移动到下一行，而且默认全部选中，方便快速编辑
+
+- 如果不想修改改行，可以直接回车调到再下一行
+
+
+
 # Authors
 
 * Markus Gaasedelen ([@gaasedelen](https://twitter.com/gaasedelen))
+* HERO WUKing (@herowuking)

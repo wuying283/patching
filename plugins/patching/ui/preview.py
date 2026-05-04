@@ -17,11 +17,12 @@ class PatchingController(object):
     """
     The backing logic & model (data) for the patch editing UI.
     """
-    WINDOW_TITLE = "Patching"
-
     def __init__(self, core, ea=ida_idaapi.BADADDR):
         self.core = core
         self.view = None
+
+        # 窗口标题引用 core 中的插件信息
+        self.WINDOW_TITLE = "%s 增强版 v%s by %s" % (core.PLUGIN_NAME, core.PLUGIN_VERSION, core.PLUGIN_AUTHORS)
 
         #
         # if no context (an address to patch at) was provided, use IDA's
@@ -41,6 +42,9 @@ class PatchingController(object):
 
         # for error text or other dynamic information to convey to the user
         self.status_message = ''
+
+        # 待写入的注释文本(分号后的内容)
+        self._pending_comment = ''
 
         # do an initial 'refresh' to populate data for the patching dialog
         self.refresh()
@@ -127,6 +131,12 @@ class PatchingController(object):
         # patch the instruction at the current address
         self.core.patch(self.address, self.assembly_bytes)
 
+        # 如果用户输入了注释,写入IDA
+        if self._pending_comment:
+            ida_bytes.set_cmt(self.address, self._pending_comment, False)
+            self._pending_comment = ''
+            ida_kernwin.refresh_idaview_anyway()
+
         # refresh lines
         self._refresh_lines()
 
@@ -138,6 +148,27 @@ class PatchingController(object):
         self.assembly_bytes = bytes()
         self.status_message = ''
 
+        # 分离注释: 支持 ;  //  # 三种注释标记(ARM架构下#为立即数前缀,不作为注释)
+        is_arm = self.core.assembler.__class__.__name__ == 'AsmARM'
+        markers = [';', '//'] if is_arm else [';', '//', '#']
+
+        comment_pos = -1
+        for marker in markers:
+            pos = assembly_text.find(marker)
+            if pos != -1 and (comment_pos == -1 or pos < comment_pos):
+                comment_pos = pos
+
+        if comment_pos != -1:
+            asm_only = assembly_text[:comment_pos].strip()
+            self._pending_comment = assembly_text[comment_pos:].lstrip('#;/ ').strip()
+        else:
+            asm_only = assembly_text.strip()
+            self._pending_comment = ''
+
+        if not asm_only:
+            self.status_message = '...'
+            return
+
         #
         # before trying to assemble the user input, we'll try to check for a
         # few problematic and unsupported cases before even attempting to
@@ -147,7 +178,7 @@ class PatchingController(object):
         # class and expose an error reason message/text for failures
         #
 
-        _, mnemonic, operands = parse_disassembly_components(assembly_text)
+        _, mnemonic, operands = parse_disassembly_components(asm_only)
 
         #
         # if it looks like the user is trying to assemble an instruction that
@@ -181,24 +212,8 @@ class PatchingController(object):
         # in Keystone proper :-X
         #
 
-        assembly_normalized = assembly_text.strip().lower()
-
-        if assembly_normalized.startswith('.string'):
+        if asm_only.lower().startswith('.string'):
             self.status_message = "Unsupported declaration (.string can hang Keystone)"
-            return
-
-        #
-        # TODO: in v0.2.0 we should try to to re-enable multi-instruction
-        # inputs. the only reason it is 'disabled' for now is that I need more
-        # time to better define its behavior in the context of the plugin
-        #
-        # NOTE: Keystone supports 'xor eax, eax; ret;' just fine, it's purely
-        # ensuring the rest of this plugin / wrapping layers are going to
-        # handle it okay
-        #
-
-        if ';' in assembly_normalized:
-            self.status_message = "Multi-instruction input not yet supported (';' not allowed)"
             return
 
         #
@@ -206,7 +221,7 @@ class PatchingController(object):
         # and try to assemble it to see what happens
         #
 
-        self.assembly_bytes = self.core.assemble(self.assembly_text, self.address)
+        self.assembly_bytes = self.core.assemble(asm_only, self.address)
         if not self.assembly_bytes:
             self.status_message = '...' # error assembling
 

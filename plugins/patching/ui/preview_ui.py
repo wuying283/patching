@@ -318,6 +318,15 @@ class PatchingDockable(ida_kernwin.PluginForm):
             self.controller.edit_assembly(self._line_assembly.text())
         self.controller.commit_assembly()
 
+        # 提交后自动将光标移到下一条指令,并全选文本以便直接编辑
+        current_insn = self.controller.get_insn(self.controller.address)
+        if current_insn:
+            next_ea = current_insn.address + current_insn.size
+            if self.controller.get_insn(next_ea):
+                self.controller.select_address(next_ea)
+                self._line_assembly.setFocus(QtCore.Qt.FocusReason.ActiveWindowFocusReason)
+                self._line_assembly.selectAll()
+
     #--------------------------------------------------------------------------
     # Misc
     #--------------------------------------------------------------------------
@@ -504,6 +513,11 @@ class PatchingCodeViewer(ida_kernwin.simplecustviewer_t):
 
         # notify the controller of the updated cursor / selection
         self.controller.select_address(view_address, relative_idx)
+
+    def OnDblClick(self, shift=0):
+        # 双击时全选汇编输入框文本,方便直接编辑
+        if self.controller.view:
+            self.controller.view._line_assembly.selectAll()
 
     def OnPopup(self, form, popup_handle):
         self._filter = remove_ida_actions(popup_handle)
