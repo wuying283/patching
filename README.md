@@ -131,6 +131,8 @@ Time and motivation permitting, future work may include:
 
 I welcome external contributions, issues, and feature requests. Please make any pull requests to the `develop` branch of this repository if you would like them to be considered for a future release.
 
+
+
 # 修改记录
 
 ## v0.3.0 updates
@@ -150,6 +152,8 @@ I welcome external contributions, issues, and feature requests. Please make any 
 - 编辑完毕一行，回车自动移动到下一行，而且默认全部选中，方便快速编辑
 
 - 如果不想修改改行，可以直接回车调到再下一行
+
+- 升级测试：直接在插件目录下修改插件的代码，然后在IDA Pro命令行输入`patching.reload()`可以实现热加载调试
 
 
 
